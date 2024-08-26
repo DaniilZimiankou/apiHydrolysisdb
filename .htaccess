@@ -1,0 +1,11 @@
+RewriteEngine On
+RewriteBase /apiHydrolysisdb
+
+# Ensure Authorization header is passed to PHP
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+# Handle non-existing files by routing them to server.php
+options +FollowSymLinks
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule .* server.php/$0 [L]
