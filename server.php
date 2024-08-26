@@ -331,6 +331,80 @@ class Server
 
 
 
+    // Mira el rol d'usuari
+    if ($resource == 'check-role') {
+        if ($method == "GET") {
+            $headers = apache_request_headers();
+            $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+            if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                $jwt = $matches[1];
+                $decoded = $jwtHandler->decodeToken($jwt);
+                $role = $decoded->iss;
+                echo json_encode(['role' => $role]);
+            } else {
+                http_response_code(401);
+                echo json_encode(['error' => 'Unauthorized']);
+            }
+        }
+    }
+
+
+
+
+    // Endpoint per eliminar experiment (Mira si el que elimina experiment es el qui ho va crear o el admin)
+    if ($resource == 'DeleteExperiment') {
+        if ($method == "DELETE") {
+            $headers = apache_request_headers();
+            $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+
+            if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                $jwt = $matches[1];
+                $decoded = $jwtHandler->decodeToken($jwt);
+
+                if ($decoded) {
+                    $usuariID = $decoded->data->username;
+                    $role = $decoded->iss;
+                    $experimentID = $identificador;
+
+
+                    // Get experiment owner ID
+                    $getExperimentOwnerID = $functionsBdD->getExperimentOwnerID($experimentID);
+                    print_r($getExperimentOwnerID);
+                    $experimentOwnerID = $getExperimentOwnerID['usuariID'];
+
+                    // if ($experimentOwnerID === false) {
+                    //     http_response_code(404);
+                    //     echo json_encode(['error' => 'Experiment not found']);
+                    //     exit();
+                    // }
+
+                    // Check if the user is the owner or an admin
+                    if ($usuariID === $experimentOwnerID || $role === 'administrador') {
+                        if ($functionsBdD->deleteExperiment($experimentID)) {
+                            echo json_encode(['message' => 'Experiment deleted successfully']);
+                        } else {
+                            http_response_code(500);
+                            echo json_encode(['error' => 'Failed to delete experiment']);
+                        }
+                    } else {
+                        http_response_code(401);
+                        echo json_encode(['error' => 'Unauthorized']);
+                    }
+                } else {
+                    http_response_code(401);
+                    echo json_encode(['error' => 'Invalid token']);
+                }
+            } else {
+                http_response_code(401);
+                echo json_encode(['error' => 'Authorization header not found']);
+            }
+        }
+    }
+
+
+
+
+
 
 
     else {

@@ -312,5 +312,48 @@ class FunctionsBdD {
     }
 
 
+    //Selecciona al usuari creador del experiment
+    public function getExperimentOwnerID($experimentID) {
+        try {
+            $sql = "SELECT usuariID FROM experiment WHERE experimentID = :experimentID";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':experimentID', $experimentID);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result;
+        } catch (PDOException $e) {
+            error_log('Error fetching experiment owner ID: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Eliminar Experiment
+    public function deleteExperiment($experimentID) {
+        try {
+            // Delete from 'utilitza' table
+            $sql = "DELETE FROM utilitza WHERE experimentID = :experimentID";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':experimentID', $experimentID);
+            $stmt->execute();
+    
+            // Delete from 'charts' table
+            $sql = "DELETE FROM charts WHERE experimentID = :experimentID";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':experimentID', $experimentID);
+            $stmt->execute();
+    
+            // Delete from 'experiment' table
+            $sql = "DELETE FROM experiment WHERE experimentID = :experimentID";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':experimentID', $experimentID);
+            return $stmt->execute();
+            
+        } catch (PDOException $e) {
+            error_log('Error deleting experiment: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+
 }
 ?>
