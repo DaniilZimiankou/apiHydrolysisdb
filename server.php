@@ -406,6 +406,381 @@ class Server
 
 
 
+    else if ($resource == 'AllExperiments') { 
+        if ($method == "GET") {
+
+            $headers = apache_request_headers();
+            $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    
+            if ($authHeader) {
+
+                $token = str_replace('Bearer ', '', $authHeader);
+                $decoded = $jwtHandler->decodeToken($token);
+    
+                if ($decoded) {
+
+                    $usuariID = $decoded->data->username;
+                    $role = $decoded->iss;
+                    
+                    if ($role === 'administrador'){
+                        $experiments = $functionsBdD->getAllExperiments();
+                    
+                        if ($experiments) {
+                            $detailedExperiments = [];
+                        
+                            foreach ($experiments as $experiment) {
+                                $experimentID = $experiment['experimentID'];
+                                $experimentDetails = $functionsBdD->getExperimentDetails($experimentID);
+                            
+                                if ($experimentDetails) {
+                                $detailedExperiments[] = $experimentDetails;
+                                }
+                            }
+    
+                            if (!empty($detailedExperiments)) {
+                                http_response_code(200);
+                                echo json_encode($detailedExperiments);
+                            } else {
+                                http_response_code(404);
+                                echo json_encode(array("message" => "No detailed experiments found"));
+                            }
+                        } else {
+                            http_response_code(404);
+                            echo json_encode(array("message" => "No experiments found"));
+                        }
+                    } else {
+                        http_response_code(401);
+                        echo json_encode(['error' => 'Unauthorized']);
+                    }
+                } else {
+                    http_response_code(401);
+                    echo json_encode(array("message" => "Invalid token"));
+                }
+            } else {
+                http_response_code(401);
+                echo json_encode(array("message" => "Authorization header not found"));
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(array("message" => "Method not allowed"));
+        }
+    }
+
+
+
+
+
+    else if ($resource == 'UpdateExperimentStatus') {
+        if ($method == "POST") {
+    
+            $headers = apache_request_headers();
+            $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    
+            if ($authHeader) {
+    
+                $token = str_replace('Bearer ', '', $authHeader);
+                $decoded = $jwtHandler->decodeToken($token);
+    
+                if ($decoded) {
+    
+                    $role = $decoded->iss;
+                    
+                    if ($role === 'administrador') {
+                        $data = json_decode(file_get_contents('php://input'), true);
+                        $experimentID = $data['experimentID'] ?? null;
+                        $status = $data['status'] ?? null;
+    
+                        if ($experimentID && $status) {
+                            $updateResult = $functionsBdD->updateExperimentStatus($experimentID, $status);
+    
+                            if ($updateResult) {
+                                http_response_code(200);
+                                echo json_encode(array("message" => "Experiment status updated successfully"));
+                            } else {
+                                http_response_code(500);
+                                echo json_encode(array("message" => "Failed to update experiment status"));
+                            }
+                        } else {
+                            http_response_code(400);
+                            echo json_encode(array("message" => "Missing required fields"));
+                        }
+                    } else {
+                        http_response_code(401);
+                        echo json_encode(array("error" => "Unauthorized"));
+                    }
+                } else {
+                    http_response_code(401);
+                    echo json_encode(array("message" => "Invalid token"));
+                }
+            } else {
+                http_response_code(401);
+                echo json_encode(array("message" => "Authorization header not found"));
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(array("message" => "Method not allowed"));
+        }
+    }
+
+
+
+
+
+    else if ($resource == 'PendentExperiments') { 
+        if ($method == "GET") {
+
+            $headers = apache_request_headers();
+            $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    
+            if ($authHeader) {
+
+                $token = str_replace('Bearer ', '', $authHeader);
+                $decoded = $jwtHandler->decodeToken($token);
+    
+                if ($decoded) {
+
+                    $usuariID = $decoded->data->username;
+                    $role = $decoded->iss;
+                    
+                    if ($role === 'administrador'){
+                        $experiments = $functionsBdD->getPendentExperiments();
+                        if ($experiments) {
+                            
+                            $detailedExperiments = [];
+                            foreach ($experiments as $experiment) {
+                                $experimentID = $experiment['experimentID'];
+                                $experimentDetails = $functionsBdD->getExperimentDetails($experimentID);
+                                if ($experimentDetails) {
+                                    $detailedExperiments[] = $experimentDetails;
+                                }
+                            }
+                
+                            if (!empty($detailedExperiments)) {
+                                http_response_code(200);
+                                echo json_encode($detailedExperiments);
+                            } else {
+                                http_response_code(404);
+                                echo json_encode(array("message" => "No detailed experiments found"));
+                            }
+                        } else {
+                            http_response_code(404);
+                            echo json_encode(array("message" => "No experiments found"));
+                        }
+                    } else {
+                        http_response_code(401);
+                        echo json_encode(['error' => 'Unauthorized']);
+                    }
+                } else {
+                    http_response_code(401);
+                    echo json_encode(array("message" => "Invalid token"));
+                }
+            } else {
+                http_response_code(401);
+                echo json_encode(array("message" => "Authorization header not found"));
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(array("message" => "Method not allowed"));
+        }
+    }
+
+
+
+
+
+    else if ($resource == 'AllUsers') { 
+        if ($method == "GET") {
+
+            $headers = apache_request_headers();
+            $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    
+            if ($authHeader) {
+
+                $token = str_replace('Bearer ', '', $authHeader);
+                $decoded = $jwtHandler->decodeToken($token);
+    
+                if ($decoded) {
+
+                    $usuariID = $decoded->data->username;
+                    $role = $decoded->iss;
+                    
+                    if ($role === 'administrador'){
+                        $usuaris = $functionsBdD->getAllUsuaris($usuariID);
+                        if ($usuaris) {
+                                http_response_code(200);
+                                echo json_encode($usuaris);
+                        } else {
+                            http_response_code(404);
+                            echo json_encode(array("message" => "No experiments found"));
+                        }
+                    } else {
+                        http_response_code(401);
+                        echo json_encode(['error' => 'Unauthorized']);
+                    }
+                } else {
+                    http_response_code(401);
+                    echo json_encode(array("message" => "Invalid token"));
+                }
+            } else {
+                http_response_code(401);
+                echo json_encode(array("message" => "Authorization header not found"));
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(array("message" => "Method not allowed"));
+        }
+    }
+
+
+
+
+
+    else if ($resource == 'UpdateUsuari') {
+        if ($method == "POST") {
+            $headers = apache_request_headers();
+            $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+            
+            if ($authHeader) {
+                $token = str_replace('Bearer ', '', $authHeader);
+                $decoded = $jwtHandler->decodeToken($token);
+                
+                if ($decoded) {
+                    $usuariID = $decoded->data->username;
+                    $role = $decoded->iss;
+                    
+                    if ($role === 'administrador'){
+                        $usuariData = json_decode(file_get_contents("php://input"), true);
+                        $usuariEmail = $usuariData['email'];
+                        $usuariIDsended = $usuariData['usuariID'];
+                        $emailExistent = $functionsBdD->comprovarEmail($usuariEmail, $usuariIDsended);
+                        if($emailExistent == false){ 
+                            if ($functionsBdD->updateUsuari($usuariData)) {
+                                echo json_encode(['status' => 'success']);
+                            } else {
+                                http_response_code(500);
+                                echo json_encode(['status' => 'error', 'message' => 'Failed to update experiment or utilitza.']);
+                            }
+                        
+                        } else {
+                            //codi ha de retornar que email ja esta ocupat
+                            http_response_code(409); // 409 Conflict
+                            echo json_encode(['status' => 'error', 'message' => 'The email is already in use.']);
+                        }
+                    } else {
+                        http_response_code(401);
+                        echo json_encode(['error' => 'Unauthorized']);
+                    }
+                } else {
+                    http_response_code(401);
+                    echo json_encode(['status' => 'error', 'message' => 'Invalid token.']);
+                }
+            } else {
+                http_response_code(401);
+                echo json_encode(['status' => 'error', 'message' => 'Token missing.']);
+            }
+        }
+    }
+
+
+
+
+
+    else if ($resource == 'dataUser') { 
+        if ($method == "GET") {
+
+            $headers = apache_request_headers();
+            $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    
+            if ($authHeader) {
+
+                $token = str_replace('Bearer ', '', $authHeader);
+                $decoded = $jwtHandler->decodeToken($token);
+    
+                if ($decoded) {
+
+                    $usuariID = $decoded->data->username;
+                    $role = $decoded->iss;
+                    
+                    if ($usuariID){
+                        $usuaris = $functionsBdD->getDataUsuari($usuariID);
+                        if ($usuaris) {
+                                http_response_code(200);
+                                echo json_encode($usuaris);
+                        } else {
+                            http_response_code(404);
+                            echo json_encode(array("message" => "No experiments found"));
+                        }
+                    } else {
+                        http_response_code(401);
+                        echo json_encode(['error' => 'Unauthorized']);
+                    }
+                } else {
+                    http_response_code(401);
+                    echo json_encode(array("message" => "Invalid token"));
+                }
+            } else {
+                http_response_code(401);
+                echo json_encode(array("message" => "Authorization header not found"));
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(array("message" => "Method not allowed"));
+        }
+    }
+
+
+
+
+
+    else if ($resource == 'UpdateMyUsuari') {
+        if ($method == "POST") {
+            $headers = apache_request_headers();
+            $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+            
+            if ($authHeader) {
+                $token = str_replace('Bearer ', '', $authHeader);
+                $decoded = $jwtHandler->decodeToken($token);
+                
+                if ($decoded) {
+                    $usuariID = $decoded->data->username;
+                    $role = $decoded->iss;
+                    $usuariData = json_decode(file_get_contents("php://input"), true);
+                    $usuariEmail = $usuariData['email'];
+                    $usuariIDsended = $usuariData['usuariID'];
+                    if ($usuariID === $usuariIDsended){ 
+                        $emailExistent = $functionsBdD->comprovarEmail($usuariEmail, $usuariIDsended);
+                        if($emailExistent == false){ 
+                            if ($functionsBdD->updateMyUsuari($usuariData)) {
+                                echo json_encode(['status' => 'success']);
+                            } else {
+                                http_response_code(500);
+                                echo json_encode(['status' => 'error', 'message' => 'Failed to update experiment or utilitza.']);
+                            }
+                        
+                        } else {
+                            //codi ha de retornar que email ja esta ocupat
+                            http_response_code(409); // 409 Conflict
+                            echo json_encode(['status' => 'error', 'message' => 'The email is already in use.']);
+                        }
+                    } else {
+                        http_response_code(401);
+                        echo json_encode(['error' => 'Unauthorized']);
+                    }
+                } else {
+                    http_response_code(401);
+                    echo json_encode(['status' => 'error', 'message' => 'Invalid token.']);
+                }
+            } else {
+                http_response_code(401);
+                echo json_encode(['status' => 'error', 'message' => 'Token missing.']);
+            }
+        }
+    }
+
+
+
+
+
 
     else {
         // només validem /contrasenya/validar

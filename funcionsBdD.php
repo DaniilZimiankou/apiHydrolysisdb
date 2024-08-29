@@ -355,5 +355,159 @@ class FunctionsBdD {
     }
 
 
+    public function getAllExperiments() {
+        try {
+            $stmt = $this->conn->prepare("SELECT * FROM experiment");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
+            return false;
+        }
+    }
+
+
+    public function updateExperimentStatus($experimentID, $comprovacio) {
+        try {
+            // Prepare the SQL statement to update the experiment status
+            $sql = "UPDATE experiment SET comprovacio = :comprovacio, estat = 'acabat' WHERE experimentID = :experimentID";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':experimentID', $experimentID);
+            $stmt->bindValue(':comprovacio', $comprovacio);
+            return $stmt->execute();
+            
+        } catch (PDOException $e) {
+            error_log('Error updating experiment status: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+
+    public function getPendentExperiments() {
+        try {
+            $sql = "SELECT experimentID FROM experiment WHERE estat = 'pendent' AND comprovacio = 'no acceptat'";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute();
+            $stmt->setFetchMode(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll();
+    
+            return $results ? $results : [];
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
+            return false;
+        }
+    }
+
+
+    public function getAllUsuaris($usuariID) {
+        try {
+            // $sql = "SELECT * FROM usuaris WHERE usuariID != :usuariID AND rol != 'administrador'";
+            $sql = "SELECT usuariID, nom, cognoms, email, rol FROM usuaris WHERE usuariID != :usuariID";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':usuariID', $usuariID);
+            $stmt->execute();
+            $stmt->setFetchMode(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll();
+    
+            return $results ? $results : [];
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
+            return false;
+        }
+    }
+
+
+    public function comprovarEmail($usuariEmail, $usuariID) {
+        try {
+            $sql = "SELECT COUNT(*) FROM usuaris WHERE email = :usuariEmail AND usuariID != :usuariID";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':usuariEmail', $usuariEmail, PDO::PARAM_STR);
+            $stmt->bindValue(':usuariID', $usuariID, PDO::PARAM_INT);
+            $stmt->execute();
+    
+            // Fetch the count result
+            $count = $stmt->fetchColumn();
+    
+            // Return true if the email exists or false if is not
+            return $count > 0;
+        } catch (PDOException $e) {
+            // Optionally log the exception
+            error_log("Error checking email: " . $e->getMessage());
+            return false;
+        }
+    }
+
+
+    public function updateUsuari($data) {
+        try {
+            $sql = "UPDATE usuaris SET
+                        nom = :nom,
+                        cognoms = :cognoms,
+                        email = :email,
+                        rol = :rol
+                    WHERE usuariID = :usuariID";
+    
+            $stmt = $this->conn->prepare($sql);
+    
+            // BindValue
+            $stmt->bindValue(':nom', $data['nom']);
+            $stmt->bindValue(':cognoms', $data['cognoms']);
+            $stmt->bindValue(':email', $data['email']);
+            $stmt->bindValue(':rol', $data['rol']);
+            $stmt->bindValue(':usuariID', $data['usuariID'], PDO::PARAM_INT);
+    
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+
+            error_log('Error updating experiment: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+
+    public function getDataUsuari($usuariID) {
+        try {
+            // $sql = "SELECT * FROM usuaris WHERE usuariID != :usuariID AND rol != 'administrador'";
+            $sql = "SELECT usuariID, nom, cognoms, email, rol FROM usuaris WHERE usuariID = :usuariID";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':usuariID', $usuariID);
+            $stmt->execute();
+            $stmt->setFetchMode(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll();
+    
+            return $results ? $results : [];
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
+            return false;
+        }
+    }
+
+
+    public function updateMyUsuari($data) {
+        try {
+            $sql = "UPDATE usuaris SET
+                        nom = :nom,
+                        cognoms = :cognoms,
+                        email = :email
+                    WHERE usuariID = :usuariID";
+    
+            $stmt = $this->conn->prepare($sql);
+    
+            // BindValue
+            $stmt->bindValue(':nom', $data['nom']);
+            $stmt->bindValue(':cognoms', $data['cognoms']);
+            $stmt->bindValue(':email', $data['email']);
+            $stmt->bindValue(':usuariID', $data['usuariID'], PDO::PARAM_INT);
+    
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+
+            error_log('Error updating experiment: ' . $e->getMessage());
+            return false;
+        }
+    }
+
 }
 ?>
