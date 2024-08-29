@@ -9,22 +9,43 @@ class FunctionsBdD {
         $this->conn = $database->getConnection();
     }
 
+    // public function login($UserEmail, $passwd) {
+    //     try {
+    //         $stmt = $this->conn->prepare("SELECT usuariID FROM usuaris WHERE email = :email AND contrasenya = :contrasenya");
+    //         $stmt->bindParam("email", $UserEmail);
+    //         $stmt->bindParam("contrasenya", $passwd);
+    //         $stmt->execute();
+    //         $user = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    //         $stmt = $this->conn->prepare("SELECT rol FROM usuaris WHERE email = :email AND contrasenya = :contrasenya");
+    //         $stmt->bindParam("email", $UserEmail);
+    //         $stmt->bindParam("contrasenya", $passwd);
+    //         $stmt->execute();
+    //         $role = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    //         if (count($user) == 1) {
+    //             return array($user, $role);
+    //         } else {
+    //             return false;
+    //         }
+    //     } catch (PDOException $e) {
+    //         echo "Error: " . $e->getMessage();
+    //         return false;
+    //     }
+    // }
+
+
     public function login($UserEmail, $passwd) {
         try {
-            $stmt = $this->conn->prepare("SELECT usuariID FROM usuaris WHERE email = :email AND contrasenya = :contrasenya");
-            $stmt->bindParam("email", $UserEmail);
-            $stmt->bindParam("contrasenya", $passwd);
+            // Obtenir la contrasenya encriptada des de la base de dades
+            $stmt = $this->conn->prepare("SELECT usuariID, contrasenya, rol FROM usuaris WHERE email = :email");
+            $stmt->bindParam(":email", $UserEmail);
             $stmt->execute();
-            $user = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            $stmt = $this->conn->prepare("SELECT rol FROM usuaris WHERE email = :email AND contrasenya = :contrasenya");
-            $stmt->bindParam("email", $UserEmail);
-            $stmt->bindParam("contrasenya", $passwd);
-            $stmt->execute();
-            $role = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            if (count($user) == 1) {
-                return array($user, $role);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+            // Comprova si l'usuari existeix i verifica la contrasenya
+            if ($user && password_verify($passwd, $user['contrasenya'])) {
+                return [$user['usuariID'], $user['rol']];
             } else {
                 return false;
             }
@@ -35,14 +56,38 @@ class FunctionsBdD {
     }
 
 
+    // public function register($nom, $cognoms, $email, $passwd) {
+    //     try {
+    //         $stmt = $this->conn->prepare("INSERT INTO usuaris (nom, cognoms, email, contrasenya, rol) VALUES (:nom, :cognoms, :email, :passwd, 'tecnic')");
+    //         $stmt->bindParam("nom", $nom);
+    //         $stmt->bindParam("cognoms", $cognoms);
+    //         $stmt->bindParam("email", $email);
+    //         $stmt->bindParam("passwd", $passwd);
+
+    //         if ($stmt->execute()) {
+    //             return true;
+    //         } else {
+    //             return false;
+    //         }
+    //     } catch (PDOException $e) {
+    //         echo "Error: " . $e->getMessage();
+    //         return false;
+    //     }
+    // }
+
+
     public function register($nom, $cognoms, $email, $passwd) {
         try {
+            // Encriptar la contrasenya amb Argon2
+            $hashedPassword = password_hash($passwd, PASSWORD_ARGON2ID);
+    
+            // Inserir l'usuari a la base de dades
             $stmt = $this->conn->prepare("INSERT INTO usuaris (nom, cognoms, email, contrasenya, rol) VALUES (:nom, :cognoms, :email, :passwd, 'tecnic')");
-            $stmt->bindParam("nom", $nom);
-            $stmt->bindParam("cognoms", $cognoms);
-            $stmt->bindParam("email", $email);
-            $stmt->bindParam("passwd", $passwd);
-
+            $stmt->bindParam(":nom", $nom);
+            $stmt->bindParam(":cognoms", $cognoms);
+            $stmt->bindParam(":email", $email);
+            $stmt->bindParam(":passwd", $hashedPassword);
+    
             if ($stmt->execute()) {
                 return true;
             } else {
@@ -118,13 +163,12 @@ class FunctionsBdD {
             // Inserir into the experiment table
             $sqlExperiment = "INSERT INTO experiment (nom_experiment, estat, comprovacio, catalitzador, 
                                                     ph, temps, temperatura, usuariID) 
-                            VALUES (:nom_experiment, :estat, :comprovacio, :catalitzador, :ph, :temps, 
+                            VALUES (:nom_experiment, :estat, 'no acceptat', :catalitzador, :ph, :temps, 
                                     :temperatura, :usuariID)";
             $stmt = $this->conn->prepare($sqlExperiment);
             $stmt->execute([
                 ':nom_experiment' => $nom_experiment,
                 ':estat' => $estat,
-                ':comprovacio' => $comprovacio,
                 ':catalitzador' => $catalitzador,
                 ':ph' => $ph,
                 ':temps' => $temps,
@@ -315,7 +359,7 @@ class FunctionsBdD {
     //Selecciona al usuari creador del experiment
     public function getExperimentOwnerID($experimentID) {
         try {
-            $sql = "SELECT usuariID FROM experiment WHERE experimentID = :experimentID";
+            $sql = "SELECT usuariID, comprovacio FROM experiment WHERE experimentID = :experimentID";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindValue(':experimentID', $experimentID);
             $stmt->execute();

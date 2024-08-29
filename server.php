@@ -40,6 +40,49 @@ class Server
     $expirationTime = $issuedAt + 3600;
     $functionsBdD = new FunctionsBdD();
 
+    // if ($resource == 'Login') { //--Funciona OK
+    //     if ($method == "POST") {
+    //         $put = json_decode(file_get_contents('php://input'), true);
+    //         $UserEmail = $put["UserEmail"];
+    //         $passwd = $put["passwd"];
+        
+    //         $result = $functionsBdD->login($UserEmail, $passwd);
+        
+    //         if ($result == false) {
+    //             http_response_code(417);
+    //             echo json_encode(array("message" => "User not found"));
+    //         } else if (count($result) == 2) {
+    //             $usuariID = $result[0][0]["usuariID"];
+    //             $rol = $result[1][0]["rol"];
+        
+    //             $payload = [
+    //                 'iat' => $issuedAt,
+    //                 'exp' => $expirationTime,
+    //                 'iss' => $rol,
+    //                 'data' => array(
+    //                     'username' => $usuariID,
+    //                 )
+    //             ];
+        
+    //             $jwt = $jwtHandler->generateToken($payload);
+        
+    //             http_response_code(200);
+    //             echo json_encode(array(
+    //                 "message" => "Login successful",
+    //                 "jwt" => $jwt
+    //             ));
+    //         } else {
+    //             http_response_code(200);
+    //             echo json_encode($result);
+    //         }
+    //     }
+    //     else {
+    //         http_response_code(405);
+    //         echo json_encode(array("message" => "Method not allowed"));
+    //     }
+    // }
+
+
     if ($resource == 'Login') { //--Funciona OK
         if ($method == "POST") {
             $put = json_decode(file_get_contents('php://input'), true);
@@ -50,10 +93,9 @@ class Server
         
             if ($result == false) {
                 http_response_code(417);
-                echo json_encode(array("message" => "User not found"));
-            } else if (count($result) == 2) {
-                $usuariID = $result[0][0]["usuariID"];
-                $rol = $result[1][0]["rol"];
+                echo json_encode(array("message" => "User not found or incorrect password"));
+            } else {
+                list($usuariID, $rol) = $result;
         
                 $payload = [
                     'iat' => $issuedAt,
@@ -71,9 +113,6 @@ class Server
                     "message" => "Login successful",
                     "jwt" => $jwt
                 ));
-            } else {
-                http_response_code(200);
-                echo json_encode($result);
             }
         }
         else {
@@ -93,15 +132,23 @@ class Server
             $cognoms = $put["cognoms"];
             $email = $put["email"];
             $passwd = $put["passwd"];
+            $usuariIDsended = "-1";
 
-            $result = $functionsBdD->register($nom, $cognoms, $email, $passwd);
+            $emailExistent = $functionsBdD->comprovarEmail($email, $usuariIDsended);
+            if($emailExistent == false){ 
+                $result = $functionsBdD->register($nom, $cognoms, $email, $passwd);
 
-            if ($result) {
-                http_response_code(200);
-                echo json_encode(array("message" => "User registered successfully"));
+                if ($result) {
+                    http_response_code(200);
+                    echo json_encode(array("message" => "User registered successfully"));
+                } else {
+                    http_response_code(417);
+                    echo json_encode(array("message" => "Registration failed"));
+                }
             } else {
-                http_response_code(417);
-                echo json_encode(array("message" => "Registration failed"));
+                //codi ha de retornar que email ja esta ocupat
+                http_response_code(200); // 409 Conflict
+                echo json_encode(array("message" => "The email is already in use."));
             }
         }
         else {
@@ -309,13 +356,29 @@ class Server
                 $decoded = $jwtHandler->decodeToken($token);
                 
                 if ($decoded) {
+                    $usuariID = $decoded->data->username;
+                    $role = $decoded->iss;
+
                     $experimentData = json_decode(file_get_contents("php://input"), true);
-                    if ($functionsBdD->updateExperiment($experimentData) && $functionsBdD->updateUtilitza($experimentData) 
-                    && $functionsBdD->updateChart($experimentData)) {
-                        echo json_encode(['status' => 'success']);
+                    $experimentID = $experimentData['experimentID'];
+
+                    // Get experiment owner ID
+                    $getExperimentOwnerID = $functionsBdD->getExperimentOwnerID($experimentID);
+                    print_r($getExperimentOwnerID);
+                    $experimentOwnerID = $getExperimentOwnerID['usuariID'];
+                    $experimentOwnerComprovacio = $getExperimentOwnerID['comprovacio'];
+
+                    if (($usuariID === $experimentOwnerID && $experimentOwnerComprovacio !== 'acceptat') || $role === 'administrador') {
+                        if ($functionsBdD->updateExperiment($experimentData) && $functionsBdD->updateUtilitza($experimentData) 
+                        && $functionsBdD->updateChart($experimentData)) {
+                            echo json_encode(['status' => 'success']);
+                        } else {
+                            http_response_code(500);
+                            echo json_encode(['status' => 'error', 'message' => 'Failed to update experiment or utilitza.']);
+                        }
                     } else {
-                        http_response_code(500);
-                        echo json_encode(['status' => 'error', 'message' => 'Failed to update experiment or utilitza.']);
+                        http_response_code(401);
+                        echo json_encode(['error' => 'Unauthorized']);
                     }
                 } else {
                     http_response_code(401);
@@ -371,15 +434,9 @@ class Server
                     $getExperimentOwnerID = $functionsBdD->getExperimentOwnerID($experimentID);
                     print_r($getExperimentOwnerID);
                     $experimentOwnerID = $getExperimentOwnerID['usuariID'];
+                    $experimentOwnerComprovacio = $getExperimentOwnerID['comprovacio'];
 
-                    // if ($experimentOwnerID === false) {
-                    //     http_response_code(404);
-                    //     echo json_encode(['error' => 'Experiment not found']);
-                    //     exit();
-                    // }
-
-                    // Check if the user is the owner or an admin
-                    if ($usuariID === $experimentOwnerID || $role === 'administrador') {
+                    if (($usuariID === $experimentOwnerID && $experimentOwnerComprovacio !== 'acceptat') || $role === 'administrador') {
                         if ($functionsBdD->deleteExperiment($experimentID)) {
                             echo json_encode(['message' => 'Experiment deleted successfully']);
                         } else {
@@ -445,7 +502,7 @@ class Server
                                 echo json_encode(array("message" => "No detailed experiments found"));
                             }
                         } else {
-                            http_response_code(404);
+                            http_response_code(200);
                             echo json_encode(array("message" => "No experiments found"));
                         }
                     } else {
@@ -563,7 +620,7 @@ class Server
                                 echo json_encode(array("message" => "No detailed experiments found"));
                             }
                         } else {
-                            http_response_code(404);
+                            http_response_code(200);
                             echo json_encode(array("message" => "No experiments found"));
                         }
                     } else {
@@ -611,7 +668,7 @@ class Server
                                 echo json_encode($usuaris);
                         } else {
                             http_response_code(404);
-                            echo json_encode(array("message" => "No experiments found"));
+                            echo json_encode(array("message" => "No usuaris found"));
                         }
                     } else {
                         http_response_code(401);
