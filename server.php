@@ -1,9 +1,4 @@
 <?php
-//Require files connection and token
-// include 'jwt.php';
-// include 'funcionsBdD.php';
-
-// Set CORS headers
 header("Access-Control-Allow-Origin: http://localhost:8080");
 header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
@@ -13,11 +8,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit;
 }
-
-// $issuedAt = time();
-// $expirationTime = $issuedAt + 3600;
-
-// $database = new Database();
 
 class Server
 {
@@ -39,48 +29,6 @@ class Server
     $issuedAt = time();
     $expirationTime = $issuedAt + 3600;
     $functionsBdD = new FunctionsBdD();
-
-    // if ($resource == 'Login') { //--Funciona OK
-    //     if ($method == "POST") {
-    //         $put = json_decode(file_get_contents('php://input'), true);
-    //         $UserEmail = $put["UserEmail"];
-    //         $passwd = $put["passwd"];
-        
-    //         $result = $functionsBdD->login($UserEmail, $passwd);
-        
-    //         if ($result == false) {
-    //             http_response_code(417);
-    //             echo json_encode(array("message" => "User not found"));
-    //         } else if (count($result) == 2) {
-    //             $usuariID = $result[0][0]["usuariID"];
-    //             $rol = $result[1][0]["rol"];
-        
-    //             $payload = [
-    //                 'iat' => $issuedAt,
-    //                 'exp' => $expirationTime,
-    //                 'iss' => $rol,
-    //                 'data' => array(
-    //                     'username' => $usuariID,
-    //                 )
-    //             ];
-        
-    //             $jwt = $jwtHandler->generateToken($payload);
-        
-    //             http_response_code(200);
-    //             echo json_encode(array(
-    //                 "message" => "Login successful",
-    //                 "jwt" => $jwt
-    //             ));
-    //         } else {
-    //             http_response_code(200);
-    //             echo json_encode($result);
-    //         }
-    //     }
-    //     else {
-    //         http_response_code(405);
-    //         echo json_encode(array("message" => "Method not allowed"));
-    //     }
-    // }
 
 
     if ($resource == 'Login') { //--Funciona OK
